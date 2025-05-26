@@ -3,9 +3,12 @@ package com.getir.clone.backend.service.impl;
 import com.getir.clone.backend.dto.request.RefreshTokenRequest;
 import com.getir.clone.backend.dto.request.RegisterRequest;
 import com.getir.clone.backend.dto.request.LoginRequest;
+import com.getir.clone.backend.dto.request.UpdateUserRequest;
 import com.getir.clone.backend.dto.response.AuthResponse;
 import com.getir.clone.backend.dto.response.UserDTO;
 import com.getir.clone.backend.entity.User;
+import com.getir.clone.backend.exceptions.*;
+import com.getir.clone.backend.mapper.UserMapper;
 import com.getir.clone.backend.repository.UserRepository;
 import com.getir.clone.backend.security.JwtProvider;
 import com.getir.clone.backend.service.interfaces.UserService;
@@ -19,26 +22,28 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final UserMapper userMapper;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
-                           JwtProvider jwtProvider) {
+                           JwtProvider jwtProvider,
+                           UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtProvider = jwtProvider;
+        this.userMapper = userMapper;
     }
 
     @Override
-    public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Bu email ile kayıtlı kullanıcı zaten var.");
-        }
+    public AuthResponse register(RegisterRequest request) throws EmailAlreadyUsedException {
+        if (userRepository.existsByEmail(request.email()))
+            throw new EmailAlreadyUsedException();
 
         User user = new User();
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setFullName(request.getFullName());
+        user.setEmail(request.email());
+        user.setPassword(passwordEncoder.encode(request.password()));
+        user.setFullName(request.fullName());
 
         String accessToken = jwtProvider.generateToken(user.getEmail());
         String refreshToken = jwtProvider.generateRefreshToken(user.getEmail());
@@ -46,27 +51,20 @@ public class UserServiceImpl implements UserService {
         user.setRefreshToken(refreshToken);
         User savedUser = userRepository.save(user);
 
-        AuthResponse response = new AuthResponse();
-        response.setToken(accessToken);
-        response.setRefreshToken(refreshToken);
-
-        UserDTO dto = new UserDTO();
-        dto.setId(savedUser.getId());
-        dto.setEmail(savedUser.getEmail());
-        dto.setFullName(savedUser.getFullName());
-        response.setUser(dto);
-
-        return response;
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                userMapper.toDto(savedUser)
+        );
     }
 
     @Override
-    public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
+    public AuthResponse login(LoginRequest request) throws UserNotFoundException {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(UserNotFoundException::new);
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Şifre yanlış.");
-        }
+        if (!passwordEncoder.matches(request.password(), user.getPassword()))
+            throw new InvalidPasswordException();
 
         String accessToken = jwtProvider.generateToken(user.getEmail());
         String refreshToken = jwtProvider.generateRefreshToken(user.getEmail());
@@ -74,34 +72,25 @@ public class UserServiceImpl implements UserService {
         user.setRefreshToken(refreshToken);
         userRepository.save(user);
 
-        AuthResponse response = new AuthResponse();
-        response.setToken(accessToken);
-        response.setRefreshToken(refreshToken);
-
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setEmail(user.getEmail());
-        dto.setFullName(user.getFullName());
-        response.setUser(dto);
-
-        return response;
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                userMapper.toDto(user)
+        );
     }
 
     @Override
-    public AuthResponse refreshToken(RefreshTokenRequest request) {
-        String refreshToken = request.getRefreshToken();
+    public AuthResponse refreshToken(RefreshTokenRequest request) throws BackendException {
+        String refreshToken = request.refreshToken();
 
-        if (!jwtProvider.validateToken(refreshToken)) {
-            throw new RuntimeException("Refresh token geçersiz veya süresi dolmuş.");
-        }
+        if (!jwtProvider.validateToken(refreshToken))
+            throw new InvalidRefreshTokenException();
 
         String email = jwtProvider.extractEmail(refreshToken);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
+                .orElseThrow(UserNotFoundException::new);
 
-        if (!refreshToken.equals(user.getRefreshToken())) {
-            throw new RuntimeException("Refresh token eşleşmedi.");
-        }
+        if (!refreshToken.equals(user.getRefreshToken())) throw new InvalidRefreshTokenException();
 
         String newAccessToken = jwtProvider.generateToken(user.getEmail());
         String newRefreshToken = jwtProvider.generateRefreshToken(user.getEmail());
@@ -109,16 +98,22 @@ public class UserServiceImpl implements UserService {
         user.setRefreshToken(newRefreshToken);
         userRepository.save(user);
 
-        AuthResponse response = new AuthResponse();
-        response.setToken(newAccessToken);
-        response.setRefreshToken(newRefreshToken);
+        return new AuthResponse(
+                newAccessToken,
+                newRefreshToken,
+                userMapper.toDto(user)
+        );
+    }
 
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setEmail(user.getEmail());
-        dto.setFullName(user.getFullName());
-        response.setUser(dto);
-
-        return response;
+    @Override
+    public UserDTO updateUser(UpdateUserRequest request, User user) {
+        userMapper.updateUserFromDto(request, user);
+        User updatedUser = userRepository.save(user);
+        return userMapper.toDto(updatedUser);
+    }
+    @Override
+    public void logout(User user) {
+        user.setRefreshToken(null);
+        userRepository.save(user);
     }
 }

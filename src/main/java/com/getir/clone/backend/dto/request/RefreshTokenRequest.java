@@ -1,8 +1,8 @@
 package com.getir.clone.backend.dto.request;
 
-import lombok.Getter;
+import jakarta.validation.constraints.NotBlank;
 
-@Getter
-public class RefreshTokenRequest {
-    private String refreshToken;
-}
+public record RefreshTokenRequest(
+        @NotBlank(message = "Refresh token boş olamaz")
+        String refreshToken
+) {}

@@ -1,13 +1,13 @@
 package com.getir.clone.backend.dto.request;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
-@Getter
-@Setter
-@Builder
-public class LoginRequest {
-    private String email;
-    private String password;
-}
+public record LoginRequest(
+        @NotBlank(message = "Email zorunludur")
+        @Email(message = "Geçerli bir email girin")
+        String email,
+
+        @NotBlank(message = "Şifre zorunludur")
+        String password
+) {}

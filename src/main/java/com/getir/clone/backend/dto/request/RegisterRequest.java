@@ -1,15 +1,18 @@
 package com.getir.clone.backend.dto.request;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-@Getter
-@Setter
-@Builder
-public class RegisterRequest {
-    private String email;
-    private String password;
-    private String fullName;
+public record RegisterRequest(
+        @NotBlank(message = "Email boş olamaz")
+        @Email(message = "Geçerli bir email adresi girin")
+        String email,
 
-}
+        @NotBlank(message = "Şifre boş olamaz")
+        @Size(min = 6, message = "Şifre en az 6 karakter olmalı")
+        String password,
+
+        @NotBlank(message = "İsim boş olamaz")
+        String fullName
+) {}
