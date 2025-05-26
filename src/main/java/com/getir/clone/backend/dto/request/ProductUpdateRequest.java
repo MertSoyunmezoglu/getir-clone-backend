@@ -1,0 +1,14 @@
+package com.getir.clone.backend.dto.request;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+import java.util.List;
+
+public record ProductUpdateRequest(
+        @NotNull Long id,
+        @NotBlank String name,
+        String description,
+        String imageUrl,
+        @NotNull Double price,
+        @NotNull List<Long> categoryIds) {}

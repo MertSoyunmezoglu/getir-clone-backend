@@ -4,8 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Set;
+
 @Entity
-@Table(name = "categories")
 @Getter
 @Setter
 public class Category {
@@ -14,6 +15,9 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", nullable = false)
+    @Column(unique = true, nullable = false)
     private String name;
+
+    @ManyToMany(mappedBy = "categories")
+    private Set<Product> products;
 }
