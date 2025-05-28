@@ -8,7 +8,9 @@ import java.util.List;
 public record ProductCreateRequest(
         @NotBlank String name,
         String description,
-        String imageUrl,
         @NotNull Double price,
-        @NotNull List<Long> categoryIds
+        Double discountedPrice,
+        @NotNull Integer stock,
+        String imageUrl,
+        List<Long> categoryIds
 ) {}

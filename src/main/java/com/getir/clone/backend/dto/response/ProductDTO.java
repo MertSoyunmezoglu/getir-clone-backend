@@ -6,7 +6,9 @@ public record ProductDTO(
         Long id,
         String name,
         String description,
+        Double price,
+        Double discountedPrice,
+        Integer stock,
         String imageUrl,
-        double price,
-       List<CategoryDTO> categories
+        List<CategoryDTO> categories
 ) {}

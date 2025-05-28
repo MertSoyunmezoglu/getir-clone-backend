@@ -32,7 +32,18 @@ public class GlobalExceptionHandler {
         return buildResponse("INTERNAL_ERROR", ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiError> handleNotFound(NotFoundException ex) {
+        return buildResponse("NOT_FOUND", ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ApiError> handleInsufficientStock(InsufficientStockException ex) {
+        return buildResponse("INSUFFICIENT_STOCK", ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     private ResponseEntity<ApiError> buildResponse(String code, String message, HttpStatus status) {
         return ResponseEntity.status(status).body(new ApiError(code, message));
     }
+
 }
