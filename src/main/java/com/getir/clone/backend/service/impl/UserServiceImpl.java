@@ -1,8 +1,8 @@
 package com.getir.clone.backend.service.impl;
 
+import com.getir.clone.backend.dto.request.LoginRequest;
 import com.getir.clone.backend.dto.request.RefreshTokenRequest;
 import com.getir.clone.backend.dto.request.RegisterRequest;
-import com.getir.clone.backend.dto.request.LoginRequest;
 import com.getir.clone.backend.dto.request.UpdateUserRequest;
 import com.getir.clone.backend.dto.response.AuthResponse;
 import com.getir.clone.backend.dto.response.UserDTO;
@@ -111,6 +111,7 @@ public class UserServiceImpl implements UserService {
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
     }
+
     @Override
     public void logout(User user) {
         user.setRefreshToken(null);

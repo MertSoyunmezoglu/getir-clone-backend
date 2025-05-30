@@ -49,12 +49,6 @@ public class CartController {
         return ResponseEntity.ok(cartService.removeItem(user, productId));
     }
 
-    @PostMapping("/checkout")
-    @Operation(summary = "Sepeti onayla")
-    public ResponseEntity<CartDTO> checkout(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(cartService.checkout(user));
-    }
-
     @DeleteMapping("/clear")
     @Operation(summary = "Sepeti temizle")
     public ResponseEntity<Void> clearCart(@AuthenticationPrincipal User user) {

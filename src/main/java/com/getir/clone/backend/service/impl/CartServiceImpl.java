@@ -32,14 +32,14 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public CartDTO getCart(User user) {
-        Cart cart = findOrCreateActiveCart(user);
+        Cart cart = getActiveCartEntity(user);
         return toDto(cart);
     }
 
     @Override
     @Transactional
     public CartDTO addItem(User user, CartItemRequest request) {
-        Cart cart = findOrCreateActiveCart(user);
+        Cart cart = getActiveCartEntity(user);
 
         Product product = productService.getById(request.productId())
                 .orElseThrow(NotFoundException::new);
@@ -77,7 +77,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public CartDTO updateItem(User user, CartItemRequest request) {
-        Cart cart = findOrCreateActiveCart(user);
+        Cart cart = getActiveCartEntity(user);
 
         CartItem cartItem = cart.getItems().stream()
                 .filter(i -> i.getProduct().getId().equals(request.productId()))
@@ -108,7 +108,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public CartDTO removeItem(User user, Long productId) {
-        Cart cart = findOrCreateActiveCart(user);
+        Cart cart = getActiveCartEntity(user);
 
         CartItem cartItem = cart.getItems().stream()
                 .filter(i -> i.getProduct().getId().equals(productId))
@@ -123,42 +123,37 @@ public class CartServiceImpl implements CartService {
         return toDto(updatedCart);
     }
 
-    @Override
-    @Transactional
-    public CartDTO checkout(User user) {
-        Cart cart = findOrCreateActiveCart(user);
-
+    public CartDTO checkout(Cart cart) {
         if (cart.getItems().isEmpty()) {
             throw new IllegalStateException("Sepet boş!");
         }
-
         cart.setCheckedOut(true);
         Cart updatedCart = cartRepository.save(cart);
-
-        // TODO: Kafka, Mail, Log işlemlerini burada tetikle
-
+        // TODO: Event, mail, log
         return toDto(updatedCart);
     }
+
 
     @Override
     @Transactional
     public void clearCart(User user) {
-        Cart cart = findOrCreateActiveCart(user);
+        Cart cart = getActiveCartEntity(user);
 
         cart.getItems().forEach(item -> productService.increaseStock(item.getProduct().getId(), item.getQuantity()));
         cart.getItems().clear();
         cartRepository.save(cart);
     }
 
-
-    private Cart findOrCreateActiveCart(User user) {
-        return cartRepository.findByUserIdAndCheckedOutFalse(user.getId())
-                .orElseGet(() -> {
-                    Cart newCart = new Cart();
-                    newCart.setUser(user);
-                    return cartRepository.save(newCart);
-                });
+    public Cart getActiveCartEntity(User user) {
+        Optional<Cart> optionalCart = cartRepository.findByUserIdAndCheckedOutFalse(user.getId());
+        if (optionalCart.isPresent()) {
+            return optionalCart.get();
+        }
+        Cart newCart = new Cart();
+        newCart.setUser(user);
+        return cartRepository.save(newCart);
     }
+
 
     private CartDTO toDto(Cart cart) {
         List<CartItemDTO> items = cart.getItems().stream()

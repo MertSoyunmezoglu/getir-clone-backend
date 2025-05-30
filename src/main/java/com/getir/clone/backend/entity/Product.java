@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.Set;
 
 @Entity
@@ -18,9 +19,9 @@ public class Product extends BaseEntity {
     private String description;
 
     @Column(nullable = false)
-    private Double price;
+    private BigDecimal price;
 
-    private Double discountedPrice;
+    private BigDecimal discountedPrice;
 
     @Column(nullable = false)
     private Integer stock;
